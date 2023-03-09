@@ -13,6 +13,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/enescakir/emoji"
 	"github.com/joho/godotenv"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const prefix string = "!Botify"
@@ -163,6 +165,7 @@ func CityOnlyWeatherHandler(currentSess *discordgo.Session, message *discordgo.M
 	requestedLocationArray := strings.Split(message.Content, " ")[2:]
 	requestedLocation := strings.Join(requestedLocationArray, " ")
 	location, lat, lon, country := weather.GetCordsCityOnly(requestedLocation)
+	correctCountry := weather.GetCountryName(country)
 	ReturnData := weather.GetWeather(lat, lon)
 
 	source := discordgo.MessageEmbedAuthor{
@@ -179,7 +182,7 @@ func CityOnlyWeatherHandler(currentSess *discordgo.Session, message *discordgo.M
 
 	embed := discordgo.MessageEmbed{
 		Author: &source,
-		Title:  "Today's weather in " + location + ", " + country,
+		Title:  "Today's weather in " + location + ", " + correctCountry,
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:  ReturnData.Primary + " " + weatherEmoji,
@@ -201,7 +204,8 @@ func CityAndCountryWeatherHandler(currentSess *discordgo.Session, message *disco
 	countryCheck := strings.Split(message.Content, ",")
 	countryStringDirty := strings.Join(countryCheck[1:], ",")
 	countryString := strings.TrimSpace(countryStringDirty)
-	countryStringCorrected := strings.Title(countryString)
+	titleCase := cases.Title(language.AmericanEnglish)
+	countryStringCorrected := titleCase.String(countryString)
 	baseCode := weather.GetCountryCode(countryStringCorrected)
 
 	countryRemovedString := countryCheck[0]
