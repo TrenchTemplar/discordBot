@@ -15,7 +15,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-const prefix string = "!goodestBoy"
+const prefix string = "!Botify"
 
 func main() {
 
@@ -74,7 +74,8 @@ func messageCreate(currentSess *discordgo.Session, message *discordgo.MessageCre
 }
 
 func HelloWorldHandler(currentSess *discordgo.Session, message *discordgo.MessageCreate) {
-	currentSess.ChannelMessageSend(message.ChannelID, "world!")
+	response := "Hi " + message.Author.Username + "!"
+	currentSess.ChannelMessageSend(message.ChannelID, response)
 }
 
 func ProverbsHandler(currentSess *discordgo.Session, message *discordgo.MessageCreate) {
