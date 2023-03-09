@@ -69,7 +69,13 @@ func messageCreate(currentSess *discordgo.Session, message *discordgo.MessageCre
 		if len(reqCall) < 2 {
 			currentSess.ChannelMessageSend(message.ChannelID, "Please include the location!")
 		}
-		WeatherHandler(currentSess, message)
+		countryCheck := strings.Split(message.Content, ",")
+
+		if len(countryCheck) > 1 {
+			CityAndCountryWeatherHandler(currentSess, message)
+		} else {
+			CityOnlyWeatherHandler(currentSess, message)
+		}
 	}
 }
 
@@ -126,32 +132,37 @@ func ProverbsHandler(currentSess *discordgo.Session, message *discordgo.MessageC
 
 }
 
-type countryCodeStruct struct {
-	Name string
-	ISO2 string
-	ISO3 string
+type iconKey struct {
+	openWeatherIcon string
+	emoji           string
 }
 
-func WeatherHandler(currentSess *discordgo.Session, message *discordgo.MessageCreate) {
-	countryCheck := strings.Split(message.Content, ",")
-	fmt.Println(countryCheck)
+var iconSlice = []iconKey{
+	{openWeatherIcon: "01d", emoji: string(emoji.Sun)},
+	{openWeatherIcon: "01n", emoji: string(emoji.CrescentMoon)},
+	{openWeatherIcon: "02d", emoji: string(emoji.SunBehindCloud)},
+	{openWeatherIcon: "02n", emoji: string(emoji.SunBehindLargeCloud)},
+	{openWeatherIcon: "03d", emoji: string(emoji.Cloud)},
+	{openWeatherIcon: "03n", emoji: string(emoji.Cloud)},
+	{openWeatherIcon: "04d", emoji: string(emoji.Cloud)},
+	{openWeatherIcon: "04n", emoji: string(emoji.Cloud)},
+	{openWeatherIcon: "09d", emoji: string(emoji.CloudWithRain)},
+	{openWeatherIcon: "09n", emoji: string(emoji.CloudWithRain)},
+	{openWeatherIcon: "10d", emoji: string(emoji.SunBehindRainCloud)},
+	{openWeatherIcon: "10n", emoji: string(emoji.SunBehindRainCloud)},
+	{openWeatherIcon: "11d", emoji: string(emoji.CloudWithLightningAndRain)},
+	{openWeatherIcon: "11n", emoji: string(emoji.CloudWithLightningAndRain)},
+	{openWeatherIcon: "13d", emoji: string(emoji.Snowman)},
+	{openWeatherIcon: "13n", emoji: string(emoji.Snowman)},
+	{openWeatherIcon: "50d", emoji: string(emoji.Fog)},
+	{openWeatherIcon: "50n", emoji: string(emoji.Fog)},
+}
 
-	var countryString string
-	var countryAsCode countryCodeStruct
-
-	if len(countryCheck) > 1 {
-		fmt.Println()
-		countryStringDirty := strings.Join(countryCheck[1:], ",")
-		countryString = strings.TrimSpace(countryStringDirty)
-		fmt.Println("countryString", countryString)
-		baseCode := countryCodeStruct(weather.GetCountryCode(countryString))
-		countryAsCode = baseCode
-		fmt.Println(countryAsCode)
-	}
+func CityOnlyWeatherHandler(currentSess *discordgo.Session, message *discordgo.MessageCreate) {
 
 	requestedLocationArray := strings.Split(message.Content, " ")[2:]
 	requestedLocation := strings.Join(requestedLocationArray, " ")
-	location, lat, lon, country := weather.GetCords(requestedLocation)
+	location, lat, lon, country := weather.GetCordsCityOnly(requestedLocation)
 	ReturnData := weather.GetWeather(lat, lon)
 
 	source := discordgo.MessageEmbedAuthor{
@@ -159,31 +170,6 @@ func WeatherHandler(currentSess *discordgo.Session, message *discordgo.MessageCr
 		URL:  "https://openweathermap.org/",
 	}
 
-	type iconKey struct {
-		openWeatherIcon string
-		emoji           string
-	}
-
-	iconSlice := []iconKey{
-		{openWeatherIcon: "01d", emoji: string(emoji.Sun)},
-		{openWeatherIcon: "01n", emoji: string(emoji.CrescentMoon)},
-		{openWeatherIcon: "02d", emoji: string(emoji.SunBehindCloud)},
-		{openWeatherIcon: "02n", emoji: string(emoji.SunBehindLargeCloud)},
-		{openWeatherIcon: "03d", emoji: string(emoji.Cloud)},
-		{openWeatherIcon: "03n", emoji: string(emoji.Cloud)},
-		{openWeatherIcon: "04d", emoji: string(emoji.Cloud)},
-		{openWeatherIcon: "04n", emoji: string(emoji.Cloud)},
-		{openWeatherIcon: "09d", emoji: string(emoji.CloudWithRain)},
-		{openWeatherIcon: "09n", emoji: string(emoji.CloudWithRain)},
-		{openWeatherIcon: "10d", emoji: string(emoji.SunBehindRainCloud)},
-		{openWeatherIcon: "10n", emoji: string(emoji.SunBehindRainCloud)},
-		{openWeatherIcon: "11d", emoji: string(emoji.CloudWithLightningAndRain)},
-		{openWeatherIcon: "11n", emoji: string(emoji.CloudWithLightningAndRain)},
-		{openWeatherIcon: "13d", emoji: string(emoji.Snowman)},
-		{openWeatherIcon: "13n", emoji: string(emoji.Snowman)},
-		{openWeatherIcon: "50d", emoji: string(emoji.Fog)},
-		{openWeatherIcon: "50n", emoji: string(emoji.Fog)},
-	}
 	weatherEmoji := ""
 	for _, value := range iconSlice {
 		if value.openWeatherIcon == ReturnData.Icon {
@@ -194,6 +180,51 @@ func WeatherHandler(currentSess *discordgo.Session, message *discordgo.MessageCr
 	embed := discordgo.MessageEmbed{
 		Author: &source,
 		Title:  "Today's weather in " + location + ", " + country,
+		Fields: []*discordgo.MessageEmbedField{
+			{
+				Name:  ReturnData.Primary + " " + weatherEmoji,
+				Value: ReturnData.Description,
+			},
+			{
+				Name: "Current Temperature: " + ReturnData.Temp + "C",
+			},
+			{
+				Name: "With lows of " + ReturnData.MinTemp + "C" + " and highs of " + ReturnData.MaxTemp + "C",
+			},
+		},
+	}
+
+	currentSess.ChannelMessageSendEmbed(message.ChannelID, &embed)
+}
+
+func CityAndCountryWeatherHandler(currentSess *discordgo.Session, message *discordgo.MessageCreate) {
+	countryCheck := strings.Split(message.Content, ",")
+	countryStringDirty := strings.Join(countryCheck[1:], ",")
+	countryString := strings.TrimSpace(countryStringDirty)
+	countryStringCorrected := strings.Title(countryString)
+	baseCode := weather.GetCountryCode(countryStringCorrected)
+
+	countryRemovedString := countryCheck[0]
+	requestedLocationArray := strings.Split(countryRemovedString, " ")[2:]
+	requestedLocation := strings.Join(requestedLocationArray, " ") + "," + baseCode.ISO2
+	location, lat, lon := weather.GetCordsCityAndCountry(requestedLocation)
+	ReturnData := weather.GetWeather(lat, lon)
+
+	source := discordgo.MessageEmbedAuthor{
+		Name: "Brought to you by the openweathermap API",
+		URL:  "https://openweathermap.org/",
+	}
+
+	weatherEmoji := ""
+	for _, value := range iconSlice {
+		if value.openWeatherIcon == ReturnData.Icon {
+			weatherEmoji = value.emoji
+		}
+	}
+
+	embed := discordgo.MessageEmbed{
+		Author: &source,
+		Title:  "Today's weather in " + location + ", " + baseCode.Name,
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:  ReturnData.Primary + " " + weatherEmoji,

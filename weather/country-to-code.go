@@ -23,25 +23,19 @@ func GetCountryCode(requestedCountry string) CountryCode {
 	}
 	defer response.Body.Close()
 
-	var codes CountryCode
+	var codes []CountryCode
 	err = json.NewDecoder(response.Body).Decode(&codes)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println()
 
 	countryCode := CountryCode{
-		Name: codes.Name,
-		ISO2: codes.ISO2,
-		ISO3: codes.ISO3,
+		Name: codes[0].Name,
+		ISO2: codes[0].ISO2,
+		ISO3: codes[0].ISO3,
 	}
+	fmt.Println()
+	fmt.Print("Complete request", countryCode)
 
 	return countryCode
 }
-
-// type ReturnCode struct {
-// 	Name    string  `json:"country_name"`
-// 	ISO2    string `json:"ISO2"`
-// 	ISO3    string `json:"ISO3"`
-
-// }
