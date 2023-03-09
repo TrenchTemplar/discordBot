@@ -126,7 +126,28 @@ func ProverbsHandler(currentSess *discordgo.Session, message *discordgo.MessageC
 
 }
 
+type countryCodeStruct struct {
+	Name string
+	ISO2 string
+	ISO3 string
+}
+
 func WeatherHandler(currentSess *discordgo.Session, message *discordgo.MessageCreate) {
+	countryCheck := strings.Split(message.Content, ",")
+	fmt.Println(countryCheck)
+
+	var countryString string
+	var countryAsCode countryCodeStruct
+
+	if len(countryCheck) > 1 {
+		fmt.Println()
+		countryStringDirty := strings.Join(countryCheck[1:], ",")
+		countryString = strings.TrimSpace(countryStringDirty)
+		fmt.Println("countryString", countryString)
+		baseCode := countryCodeStruct(weather.GetCountryCode(countryString))
+		countryAsCode = baseCode
+		fmt.Println(countryAsCode)
+	}
 
 	requestedLocationArray := strings.Split(message.Content, " ")[2:]
 	requestedLocation := strings.Join(requestedLocationArray, " ")
